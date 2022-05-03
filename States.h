@@ -5,7 +5,7 @@
 #include <Arduino.h>
 namespace States
 {
-  static int state = 0;
+  static int EE_STATE = 0;
   
   void Initialization();
   void Standby();
