@@ -21,9 +21,6 @@ void loop() {
   switch (States::EE_STATE)
   {
     case 0:
-      //reset recovery params
-      EEPROM.put(Common::BA_ADDR, 0.0f);
-      EEPROM.put(Common::ST_ADDR, 0);
       States::Initialization();
       break;
     case 1:

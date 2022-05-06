@@ -6,6 +6,7 @@
 #include <Adafruit_BNO055.h>
 #include <TeensyThreads.h>
 #include <ArduinoQueue.h>
+#include <EEPROM.h>
 
 namespace Hardware
 {   
@@ -71,12 +72,11 @@ namespace Hardware
       String received;
       if (read_container_radio(received))
       {
-        for(unsigned int i = 0; i < received.length(); i++)
-        {
-          // do something with received[i]
-        }
+        //reset recovery params
+        EEPROM.put(Common::BA_ADDR, 0.0f);
+        EEPROM.put(Common::ST_ADDR, 0);
       }
-      delay(10);
+      delay(50);
     }
   }
 }

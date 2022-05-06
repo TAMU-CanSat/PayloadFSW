@@ -16,7 +16,7 @@ namespace Common {
   const byte I2C_SDA = 25;
   const byte CAMERA_PIN = 3;
 
-  const float SEA_LEVEL = 1014.6f;
+  const float SEA_LEVEL = 1014.6f; //update this before launch
 
   static bool SIM_ACTIVATE = false;
   static bool SIM_ENABLE = false;
