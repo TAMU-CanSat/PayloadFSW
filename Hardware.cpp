@@ -7,29 +7,128 @@
 #include <TeensyThreads.h>
 #include <ArduinoQueue.h>
 #include <EEPROM.h>
+#include <Servo.h>
 
 namespace Hardware
-{   
+{ 
+  bool SIM_ACTIVATE = false;
+  bool SIM_ENABLE = false;
+  int SIM_PRESSURE = 0;
+  float EE_BASE_ALTITUDE = 0;
+  elapsedMillis cameraHold = 0;
+  bool cameraRecording = false;
+  bool firstCameraCall = true;
+    
   Adafruit_BMP3XX bmp;
   Adafruit_BNO055 bno;
+  Servo tether_servo;
+  Servo pin1_servo;
+  Servo pin2_servo;
 
   ArduinoQueue<String> container_packets(20);
   Threads::Mutex mtx;
   
   void init()
   {
-    Wire.setSCL(Common::I2C_SCL);
-    Wire.setSDA(Common::I2C_SDA);
+    pinMode(Common::MOTOR_PWM_PIN, OUTPUT);
+    pinMode(Common::MOTOR_IN1_PIN, OUTPUT);
+    pinMode(Common::MOTOR_IN2_PIN, OUTPUT);
+    pinMode(Common::CAMERA_PIN, OUTPUT);
+    digitalWrite(Common::CAMERA_PIN, HIGH);
+    cameraHold = 0;
+    cameraRecording = false;
+    firstCameraCall = true;
+
+    //tether_servo.attach(Common::TETHER_SERVO_PIN);
+    //pin1_servo.attach(Common::PIN1_SERVO_PIN);
+    //pin2_servo.attach(Common::PIN2_SERVO_PIN);
+
+    //tether_servo.write(90);
+    //pin1_servo.write(90);
+    //pin2_servo.write(90);
+    
     Wire.begin();
-    bmp.begin_I2C();
+    bmp.begin_I2C(0x77, &Wire);
+    
     bno.begin();
+  }
+
+  void update_camera(bool record)
+  {
+    if (record && !cameraRecording)
+    {
+      if (firstCameraCall)
+      { 
+        cameraHold = 0;
+        firstCameraCall = false;
+      }
+      
+      start_recording();
+    } else if (!record && cameraRecording)
+    {
+      if (firstCameraCall)
+      {
+        cameraHold = 0;
+        firstCameraCall = false;
+      }
+      
+      stop_recording();
+    }
+  }
+
+  void start_recording()
+  {
+    if (cameraHold < 550)
+    {
+      pinMode(Common::CAMERA_PIN, OUTPUT);
+      digitalWrite(Common::CAMERA_PIN, LOW);
+    } else
+    {
+      pinMode(Common::CAMERA_PIN, OUTPUT);
+      digitalWrite(Common::CAMERA_PIN, HIGH);
+      cameraRecording = true;
+      firstCameraCall = true;
+    }
+  }
+
+  void stop_recording()
+  {
+    if (cameraHold < 150)
+    {
+      pinMode(Common::CAMERA_PIN, OUTPUT);
+      digitalWrite(Common::CAMERA_PIN, LOW);
+    } else
+    {
+      pinMode(Common::CAMERA_PIN, OUTPUT);
+      digitalWrite(Common::CAMERA_PIN, HIGH);
+      cameraRecording = false;
+      firstCameraCall = true;
+    }
+  }
+
+  void spin_motor(uint16_t duty_cycle, bool ccw = false)
+  {
+    if (!ccw)
+    {
+      digitalWrite(Common::MOTOR_IN1_PIN, HIGH);
+      digitalWrite(Common::MOTOR_IN2_PIN, LOW);
+      
+      //analogWriteFrequency(Common::MOTOR_PWM_PIN, 8000);
+      analogWrite(Common::MOTOR_PWM_PIN, duty_cycle);
+    } else {
+      digitalWrite(Common::MOTOR_IN1_PIN, LOW);
+      digitalWrite(Common::MOTOR_IN2_PIN, HIGH);
+      
+      //analogWriteFrequency(Common::MOTOR_PWM_PIN, 8000);
+      analogWrite(Common::MOTOR_PWM_PIN, duty_cycle);
+    }
   }
 
   bool read_container_radio(String &data)
   {
     if (CONTAINER_XBEE_SERIAL.available())
     {
-      data = CONTAINER_XBEE_SERIAL.readStringUntil('\n');
+      data = CONTAINER_XBEE_SERIAL.readStringUntil('\r\n');
       return true;
     } else
       return false;
@@ -37,7 +136,7 @@ namespace Hardware
 
   void read_sensors(Common::Sensor_Data &data)
   {
-    data.vbat = map(analogRead(Common::VOLTAGE_PIN), 0, 1023, 0, 3.7);
+    data.vbat = ((analogRead(Common::VOLTAGE_PIN) / 1023.0) * 4.2) + 0.35;
     data.altitude = bmp.readAltitude(Common::SEA_LEVEL);
     data.temperature = bmp.readTemperature();
 
@@ -65,18 +164,18 @@ namespace Hardware
       mtx.lock();
       while (!container_packets.isEmpty())
       {
-        CONTAINER_XBEE_SERIAL.println(container_packets.dequeue());
+        CONTAINER_XBEE_SERIAL.print(container_packets.dequeue());
       }
-      mtx.unlock();
-  
+      
       String received;
       if (read_container_radio(received))
       {
         //reset recovery params
-        EEPROM.put(Common::BA_ADDR, 0.0f);
-        EEPROM.put(Common::ST_ADDR, 0);
+        //EEPROM.put(Common::BA_ADDR, 0.0f);
+        //EEPROM.put(Common::ST_ADDR, 0);
       }
-      delay(50);
+      mtx.unlock();
+      threads.delay(250);
     }
   }
 }

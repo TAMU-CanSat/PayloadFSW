@@ -1,24 +1,30 @@
 #include "Common.h"
 #include "Hardware.h"
 #include "States.h"
+#include <TimeLib.h>
 
 namespace States
 {  
+  uint16_t EE_STATE = 0;
+  
   void Initialization()
   { 
-    unsigned long start = millis();
-  
     Common::Sensor_Data sensor_data;
     Hardware::read_sensors(sensor_data);
 
-    String packet;
-    Common::build_packet(packet, "INITIALIZATION", 0, sensor_data);
-  
-    Hardware::mtx.lock();
-    Hardware::container_packets.enqueue(packet);
-    Hardware::mtx.unlock();
-  
-    if (Common::TELEMETRY_DELAY > (millis() - start))
-      delay(Common::TELEMETRY_DELAY - (millis() - start));
+    //Hardware::spin_motor(256, true);
+
+    if (millis() < 5000)
+    {
+        Hardware::update_camera(true);
+    } else if (millis() > 10000)
+    {
+        Hardware::update_camera(false);
     }
+    
+    String packet;
+    Hardware::build_packet(packet, "INITIALIZATION", 0, sensor_data);
+    Hardware::container_packets.enqueue(packet);
+    //Serial.println(packet);
+   }
 }

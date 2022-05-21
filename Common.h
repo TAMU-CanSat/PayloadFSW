@@ -6,26 +6,23 @@
 #include <TeensyThreads.h>
 #include <ArduinoQueue.h>
 
-#define CONTAINER_XBEE_SERIAL Serial1
+#define CONTAINER_XBEE_SERIAL Serial3
 
 namespace Common {
-  const unsigned long TELEMETRY_DELAY = 250; //4hz
+  const unsigned long TELEMETRY_DELAY = 250; //4hz 
   
-  const byte VOLTAGE_PIN = 23;
-  const byte I2C_SCL = 24;
-  const byte I2C_SDA = 25;
-  const byte CAMERA_PIN = 3;
-
+  const byte VOLTAGE_PIN = 16;
+  const byte CAMERA_PIN = 22;
+  const byte TETHER_SERVO_PIN = 9;
+  const byte PIN1_SERVO_PIN = 8;
+  const byte PIN2_SERVO_PIN = 7;
+  const byte MOTOR_PWM_PIN = 12;
+  const byte MOTOR_IN1_PIN = 10;
+  const byte MOTOR_IN2_PIN = 11;
+  
+  const uint16_t BA_ADDR = 0;
+  const uint16_t ST_ADDR = 4;
   const float SEA_LEVEL = 1014.6f; //update this before launch
-
-  static bool SIM_ACTIVATE = false;
-  static bool SIM_ENABLE = false;
-  static int SIM_PRESSURE = 0;
-
-  static uint16_t BA_ADDR = 0;
-  static uint16_t ST_ADDR = 4;
-
-  static float EE_BASE_ALTITUDE = 0;
   
   struct Sensor_Data // 36 bytes
   {
@@ -36,23 +33,5 @@ namespace Common {
     float acceleration[3]; // 12 bytes
     float magnetometer[3];
   };
-
-  static void build_packet(String& packet, const String& state, const float error, const Sensor_Data &sensors)
-  {
-    packet = String(sensors.altitude) + ","; 
-    packet += String(sensors.temperature) + ",";
-    packet += String(sensors.vbat) + ",";
-    packet += String(sensors.gyro[0]) + ",";
-    packet += String(sensors.gyro[1]) + ",";
-    packet += String(sensors.gyro[2]) + ",";
-    packet += String(sensors.acceleration[0]) + ",";
-    packet += String(sensors.acceleration[1]) + ",";
-    packet += String(sensors.acceleration[2]) + ",";
-    packet += String(sensors.magnetometer[0]) + ",";
-    packet += String(sensors.magnetometer[1]) + ",";
-    packet += String(sensors.magnetometer[2]) + ",";
-    packet += String(error) + ",";
-    packet += state + "\n";
-  }
 }
 #endif
